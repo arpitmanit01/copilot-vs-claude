@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Copilot CLI vs Claude Code — Command Reference</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1><span class="icon">⌨️</span> Copilot CLI vs Claude Code</h1>
+      <p class="subtitle">A developer's reference for slash commands, CLI flags, and keyboard shortcuts</p>
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="common">Common</button>
+        <button class="filter-btn copilot" data-filter="copilot">Copilot CLI Only</button>
+        <button class="filter-btn claude" data-filter="claude">Claude Code Only</button>
+      </div>
+      <input type="text" id="search" placeholder="Search commands…" autocomplete="off" />
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ==================== SECTION: CONCEPTS & MODES ==================== -->
+    <section id="concepts">
+      <h2>Concepts &amp; Modes</h2>
+      <p class="section-desc">High-level concepts that work differently across the two tools. Understand these before diving into individual commands.</p>
+
+      <!-- Permission / Interaction Modes -->
+      <h3>Permission &amp; Interaction Modes</h3>
+      <div class="concept-comparison">
+        <div class="concept-card copilot-card">
+          <h4>Copilot CLI</h4>
+          <p>Cycle through modes with <kbd>Shift+Tab</kbd>:</p>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Normal</span>
+              <span class="mode-desc">Default. The agent asks for permission before running commands that modify or execute files.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Plan</span>
+              <span class="mode-desc">The agent only proposes plans and explains what it <em>would</em> do — no file changes until you approve.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Autopilot</span>
+              <span class="mode-desc">The agent works autonomously until the task is complete. No permission prompts. <em>(Experimental — enable with <code>--experimental</code>)</em></span>
+            </div>
+          </div>
+          <p class="mode-note">Launch flags: <code>copilot --allow-all</code> or <code>copilot --yolo</code> to skip all permission prompts for a session.</p>
+        </div>
+        <div class="concept-card claude-card">
+          <h4>Claude Code</h4>
+          <p>Cycle through modes with <kbd>Shift+Tab</kbd>:</p>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Default</span>
+              <span class="mode-desc">Asks before running tools that modify files or execute commands.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Accept Edits</span>
+              <span class="mode-desc">Auto-approves file edits but still asks for shell commands.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Plan</span>
+              <span class="mode-desc">Read-only analysis and planning — no modifications until you switch modes.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Auto</span>
+              <span class="mode-desc">Classifier-based: safe commands run automatically, risky ones still prompt. Configurable via <code>auto-mode</code> rules.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Don't Ask</span>
+              <span class="mode-desc">Runs everything without prompting. Same as <code>--dangerously-skip-permissions</code>.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Bypass Permissions</span>
+              <span class="mode-desc">Full bypass including hooks. Requires <code>--allow-dangerously-skip-permissions</code> flag to appear in the cycle.</span>
+            </div>
+          </div>
+          <p class="mode-note">Launch flag: <code>claude --permission-mode plan|auto|dontAsk</code> to start in a specific mode.</p>
+        </div>
+      </div>
+
+      <!-- Effort / Quality Control -->
+      <h3>Effort &amp; Quality Control</h3>
+      <div class="concept-comparison">
+        <div class="concept-card copilot-card">
+          <h4>Copilot CLI</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Model Selection</span>
+              <span class="mode-desc">Choose between models (Claude Sonnet, GPT-5) via <code>/model</code>. Each model has different reasoning depth — that is how you control quality.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">No explicit effort dial</span>
+              <span class="mode-desc">Quality is controlled by model choice. No low/medium/high effort toggle.</span>
+            </div>
+          </div>
+        </div>
+        <div class="concept-card claude-card">
+          <h4>Claude Code</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Effort Levels</span>
+              <span class="mode-desc">Fine-grained control: <code>low</code> → <code>medium</code> → <code>high</code> → <code>xhigh</code> → <code>max</code>. Adjustable mid-session via <code>/effort</code> or arrow keys in the model picker.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Fast Mode</span>
+              <span class="mode-desc"><code>/fast on</code> optimizes for speed — shorter, more concise responses. Good for rapid iteration.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Budget Caps</span>
+              <span class="mode-desc"><code>--max-budget-usd 5</code> and <code>--max-turns 10</code> limit spending and iterations in scripted/CI usage.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Lifecycle -->
+      <h3>Session Lifecycle</h3>
+      <div class="concept-comparison">
+        <div class="concept-card copilot-card">
+          <h4>Copilot CLI</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Foreground only</span>
+              <span class="mode-desc">Sessions run in your terminal. You can delegate to the cloud via <code>/delegate</code> for async PR creation, but local sessions are foreground-only.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Delegate to Cloud</span>
+              <span class="mode-desc"><code>/delegate</code> sends the session to GitHub's cloud agent, which continues asynchronously and creates a PR.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Fleet Mode</span>
+              <span class="mode-desc"><code>/fleet</code> spawns parallel sub-agents within the session for concurrent task execution.</span>
+            </div>
+          </div>
+        </div>
+        <div class="concept-card claude-card">
+          <h4>Claude Code</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Foreground + Background</span>
+              <span class="mode-desc">Sessions can run in foreground or be detached to background with <code>/bg</code>. Multiple background agents run in parallel.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Background Agents</span>
+              <span class="mode-desc"><code>claude --bg "task"</code> or <code>/background</code> detaches to background. Monitor with <code>claude agents</code>, reattach with <code>claude attach &lt;id&gt;</code>.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Batch / Worktrees</span>
+              <span class="mode-desc"><code>/batch</code> decomposes work into 5–30 units, spawns one agent per unit in isolated git worktrees, each opening its own PR.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Goal-driven</span>
+              <span class="mode-desc"><code>/goal "all tests pass"</code> makes the agent work autonomously across multiple turns until the success condition is met.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Instructions -->
+      <h3>Custom Instructions &amp; Memory</h3>
+      <div class="concept-comparison">
+        <div class="concept-card copilot-card">
+          <h4>Copilot CLI</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Instruction Files</span>
+              <span class="mode-desc">Reads <code>CLAUDE.md</code>, <code>GEMINI.md</code>, <code>AGENTS.md</code> (git root &amp; cwd), <code>.github/copilot-instructions.md</code>, and <code>.github/instructions/**/*.instructions.md</code></span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">User-level</span>
+              <span class="mode-desc"><code>~/.copilot/copilot-instructions.md</code> for global instructions across all projects.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">No auto-memory</span>
+              <span class="mode-desc">Instructions are manually authored. No automatic learning from sessions.</span>
+            </div>
+          </div>
+        </div>
+        <div class="concept-card claude-card">
+          <h4>Claude Code</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">CLAUDE.md</span>
+              <span class="mode-desc">Primary instruction file at project root, home directory (<code>~/.claude/CLAUDE.md</code>), and nested directories.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Auto-memory</span>
+              <span class="mode-desc">Claude can automatically learn from sessions and write entries to memory files. Toggle with <code>/memory</code>.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Settings Files</span>
+              <span class="mode-desc"><code>.claude/settings.json</code> for project config, <code>~/.claude.json</code> for user-level config. Controls permissions, tools, and behavior.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CI / Scripting -->
+      <h3>CI &amp; Scripting</h3>
+      <div class="concept-comparison">
+        <div class="concept-card copilot-card">
+          <h4>Copilot CLI</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Interactive only</span>
+              <span class="mode-desc">Designed for interactive terminal sessions. No built-in non-interactive/print mode for scripting.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Cloud delegation</span>
+              <span class="mode-desc">For CI-like workflows, use <code>/delegate</code> to send work to the cloud Copilot coding agent.</span>
+            </div>
+          </div>
+        </div>
+        <div class="concept-card claude-card">
+          <h4>Claude Code</h4>
+          <div class="mode-list">
+            <div class="mode-item">
+              <span class="mode-name">Print Mode (<code>-p</code>)</span>
+              <span class="mode-desc">Non-interactive mode: <code>claude -p "query"</code>. Supports piping (<code>cat file | claude -p</code>), JSON output, budget caps, and turn limits.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">Structured Output</span>
+              <span class="mode-desc"><code>--output-format json</code> and <code>--json-schema</code> for machine-parseable responses in CI pipelines.</span>
+            </div>
+            <div class="mode-item">
+              <span class="mode-name">OAuth Tokens</span>
+              <span class="mode-desc"><code>claude setup-token</code> generates long-lived tokens for CI. <code>--bare</code> mode skips discovery for faster startup.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: INVOCATION ==================== -->
+    <section id="invocation">
+      <h2>CLI Invocation</h2>
+      <p class="section-desc">How you launch and interact with each tool from your terminal.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Action</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr>
+          </thead>
+          <tbody>
+            <tr data-cat="common"><td>Start interactive session</td><td><code>copilot</code></td><td><code>claude</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Start with initial prompt</td><td><code>copilot "query"</code></td><td><code>claude "query"</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Continue last session</td><td><code>copilot --continue</code></td><td><code>claude -c</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Resume a named session</td><td><code>copilot --resume &lt;id&gt;</code></td><td><code>claude -r "&lt;name&gt;" "query"</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Select model</td><td><code>copilot --model &lt;m&gt;</code></td><td><code>claude --model &lt;m&gt;</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Update CLI</td><td><code>winget upgrade GitHub.Copilot</code></td><td><code>claude update</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Run shell commands inline</td><td><code>!git status</code></td><td><code>!git status</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Mention files in prompt</td><td><code>@path/to/file</code></td><td><code>@path/to/file</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Skip permission prompts</td><td><code>copilot --allow-all</code></td><td><code>claude --dangerously-skip-permissions</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Add MCP config on launch</td><td>Configured via <code>~/.copilot/mcp-config.json</code></td><td><code>claude --mcp-config ./mcp.json</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td>Mention issues / PRs</td><td><code>#123</code></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td>Show banner on launch</td><td><code>copilot --banner</code></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td>Enable experimental features</td><td><code>copilot --experimental</code></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td>Print mode (one-off, exit)</td><td>—</td><td><code>claude -p "query"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Pipe input</td><td>—</td><td><code>cat file | claude -p "summarize"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Set effort level on launch</td><td>—</td><td><code>claude --effort high</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Bare / fast-start mode</td><td>—</td><td><code>claude --bare -p "query"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Background agent on launch</td><td>—</td><td><code>claude --bg "investigate flaky test"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Max budget cap</td><td>—</td><td><code>claude -p --max-budget-usd 5 "query"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Max turns limit</td><td>—</td><td><code>claude -p --max-turns 3 "query"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>JSON output format</td><td>—</td><td><code>claude -p --output-format json "query"</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Permission mode on launch</td><td>—</td><td><code>claude --permission-mode plan</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Agent view (manage bg sessions)</td><td>—</td><td><code>claude agents</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Attach to bg session</td><td>—</td><td><code>claude attach &lt;id&gt;</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Purge project state</td><td>—</td><td><code>claude project purge ~/repo</code></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Generate OAuth token for CI</td><td>—</td><td><code>claude setup-token</code></td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: SLASH COMMANDS ==================== -->
+    <section id="slash-commands">
+      <h2>Slash Commands</h2>
+      <p class="section-desc">In-session commands you type at the prompt. Grouped by function.</p>
+
+      <!-- Session Management -->
+      <h3>Session Management</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td><code>/clear</code></td><td>Abandon session, start fresh</td><td>Start new conversation (aliases: <code>/reset</code>, <code>/new</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/compact</code></td><td>Summarize history to reduce context</td><td>Free up context by summarizing; accepts focus instructions</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/resume</code></td><td>Switch to a different session by ID, task ID, or name</td><td>Resume conversation by ID or name (alias: <code>/continue</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/rename</code></td><td>Rename current session or auto-generate a name</td><td>Rename session; shows name on prompt bar</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/context</code></td><td>Show context window token usage</td><td>Visualize context usage as colored grid with suggestions</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/usage</code></td><td>Display session usage metrics</td><td>Show session cost, plan limits, activity stats (aliases: <code>/cost</code>, <code>/stats</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/exit</code></td><td>Exit the CLI</td><td>Exit the CLI (alias: <code>/quit</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td><code>/new</code></td><td>Start a new conversation</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/share</code></td><td>Share session to markdown, HTML, or GitHub gist</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/chronicle</code></td><td>Session history tools and insights</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/restart</code></td><td>Restart CLI, preserving current session</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/search</code></td><td>Search the conversation timeline</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/branch</code></td><td>—</td><td>Branch conversation at current point (alias: <code>/fork</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/background</code></td><td>—</td><td>Detach session to run as background agent (alias: <code>/bg</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/export</code></td><td>—</td><td>Export conversation as plain text or to clipboard</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/recap</code></td><td>—</td><td>Generate one-line summary of current session</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/insights</code></td><td>—</td><td>Analyze sessions: project areas, interaction patterns, friction</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Code & Development -->
+      <h3>Code &amp; Development</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td><code>/diff</code></td><td>Review changes in current directory</td><td>Interactive diff viewer: uncommitted + per-turn diffs</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/plan</code></td><td>Create implementation plan before coding</td><td>Enter plan mode; optionally pass task description</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/review</code></td><td>Run code review agent to analyze changes</td><td>Review a PR locally in current session</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/rewind</code></td><td>Rewind last turn, revert file changes (alias: <code>/undo</code>)</td><td>Rewind conversation and/or code (aliases: <code>/checkpoint</code>, <code>/undo</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/copy</code></td><td>Copy last response to clipboard</td><td>Copy response to clipboard; supports selecting code blocks</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/init</code></td><td>Initialize Copilot instructions for repo</td><td>Initialize project with a <code>CLAUDE.md</code> guide</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td><code>/pr</code></td><td>Operate on pull requests for current branch</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/delegate</code></td><td>Send session to GitHub; Copilot creates a PR</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/fleet</code></td><td>Enable fleet mode for parallel subagent execution</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/batch</code></td><td>—</td><td>Orchestrate large-scale parallel changes across codebase via worktrees</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/simplify</code></td><td>—</td><td>Review recent changes for reuse, quality, efficiency — then fix</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/security-review</code></td><td>—</td><td>Analyze pending changes for security vulnerabilities</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/ultrareview</code></td><td>—</td><td>Deep multi-agent code review in cloud sandbox</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/ultraplan</code></td><td>—</td><td>Draft plan in cloud, review in browser, execute remotely</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/autofix-pr</code></td><td>—</td><td>Watch PR and auto-push fixes when CI fails or reviewers comment</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/goal</code></td><td>—</td><td>Set a goal; Claude keeps working until condition is met</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/loop</code></td><td>—</td><td>Run a prompt repeatedly on interval (alias: <code>/proactive</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Agent & Model Config -->
+      <h3>Agent, Model &amp; Extensibility</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td><code>/model</code></td><td>Select AI model to use</td><td>Select or change model; adjust effort with arrows</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/agent</code></td><td>Browse and select available agents</td><td>Manage agent configurations (alias: <code>/agents</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/skills</code></td><td>Manage skills for enhanced capabilities</td><td>List available skills; toggle visibility</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/mcp</code></td><td>Manage MCP server configuration</td><td>Manage MCP server connections and OAuth auth</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/plugin</code></td><td>Manage plugins and plugin marketplaces</td><td>Manage Claude Code plugins</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/tasks</code></td><td>View and manage tasks (subagents, shell commands)</td><td>List and manage background tasks (alias: <code>/bashes</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/lsp</code></td><td>Manage language server configuration</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/sidekicks</code></td><td>View running sidekick agents</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/effort</code></td><td>—</td><td>Set model effort level: low → max</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/fast</code></td><td>—</td><td>Toggle fast mode on/off</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/claude-api</code></td><td>—</td><td>Load API reference material; migrate models; onboard managed agents</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Permissions & Directories -->
+      <h3>Permissions &amp; Directories</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td><code>/add-dir</code></td><td>Add a directory to allowed list</td><td>Add a working directory for file access</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td><code>/allow-all</code></td><td>Enable all permissions (tools, paths, URLs)</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/list-dirs</code></td><td>Display all allowed directories</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/cwd</code></td><td>Change working directory or show current</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/reset-allowed-tools</code></td><td>Reset the list of allowed tools</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/permissions</code></td><td>—</td><td>Manage allow/ask/deny rules interactively (alias: <code>/allowed-tools</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/fewer-permission-prompts</code></td><td>—</td><td>Scan transcripts, add allowlist to reduce prompts</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/sandbox</code></td><td>—</td><td>Toggle sandbox mode (supported platforms only)</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- UI & Customization -->
+      <h3>UI &amp; Customization</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td><code>/theme</code></td><td>View or set color mode</td><td>Change color theme (includes accessibility themes, custom themes)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/instructions</code></td><td>View and toggle custom instruction files</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/statusline</code></td><td>Configure status line items</td><td>Configure status line from shell prompt description</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td><code>/streamer-mode</code></td><td>Toggle streamer mode (hides model names, quota)</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/config</code></td><td>—</td><td>Open Settings UI: theme, model, output style (alias: <code>/settings</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/color</code></td><td>—</td><td>Set prompt bar color for current session</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/focus</code></td><td>—</td><td>Toggle focus view (minimal output)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/tui</code></td><td>—</td><td>Set terminal UI renderer (default or fullscreen)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/scroll-speed</code></td><td>—</td><td>Adjust mouse wheel scroll speed interactively</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/keybindings</code></td><td>—</td><td>Open keybindings configuration file</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Side questions & Research -->
+      <h3>Quick Questions &amp; Research</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td>Side question</td><td><code>/ask</code> — ask without adding to history</td><td><code>/btw</code> — ask without adding to context</td><td><span class="badge common">Common*</span></td></tr>
+            <tr data-cat="copilot"><td><code>/research</code></td><td>Run deep research using GitHub search and web</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/debug</code></td><td>—</td><td>Enable debug logging; troubleshoot by reading session log</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/doctor</code></td><td>—</td><td>Diagnose installation and settings; press <code>f</code> to auto-fix</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Help & Meta -->
+      <h3>Help, Feedback &amp; Meta</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td><code>/help</code></td><td>Show help for interactive commands</td><td>Show help and available commands</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/feedback</code></td><td>Provide feedback about the CLI</td><td>Submit feedback (alias: <code>/bug</code>)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/hooks</code></td><td>—</td><td>View hook configurations for tool events</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="common"><td><code>/ide</code></td><td>Connect to an IDE workspace</td><td>Manage IDE integrations and show status</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/terminal-setup</code></td><td>Configure terminal for multiline input</td><td>Configure terminal keybindings (Shift+Enter etc.)</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/login</code></td><td>Log in to Copilot</td><td>Sign in to Anthropic account</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td><code>/logout</code></td><td>Log out of OAuth session</td><td>Sign out from Anthropic account</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td><code>/changelog</code></td><td>Display changelog; add 'summarize' for AI summary</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/update</code></td><td>Update CLI to latest version</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/version</code></td><td>Display version info and check for updates</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/env</code></td><td>Show loaded environment details</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/every</code></td><td>Schedule a recurring prompt (e.g. <code>/every 5m run tests</code>)</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/keep-alive</code></td><td>Prevent system sleep</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/autopilot</code></td><td>Toggle autopilot mode</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/user</code></td><td>Manage GitHub user list</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td><code>/remote</code></td><td>Show/toggle remote control from GitHub web & mobile</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td><code>/release-notes</code></td><td>—</td><td>View changelog in interactive version picker</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/memory</code></td><td>—</td><td>Edit CLAUDE.md memory files; toggle auto-memory</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/schedule</code></td><td>—</td><td>Create/manage cloud routines (alias: <code>/routines</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/remote-control</code></td><td>—</td><td>Make session available for remote control from claude.ai (alias: <code>/rc</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/desktop</code></td><td>—</td><td>Continue session in Claude Code Desktop app (alias: <code>/app</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/voice</code></td><td>—</td><td>Toggle voice dictation (hold/tap/off)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/chrome</code></td><td>—</td><td>Configure Chrome browser integration</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/install-github-app</code></td><td>—</td><td>Set up Claude GitHub Actions for a repo</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/teleport</code></td><td>—</td><td>Pull a web session into this terminal (alias: <code>/tp</code>)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/team-onboarding</code></td><td>—</td><td>Generate team onboarding guide from your usage history</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/powerup</code></td><td>—</td><td>Discover features through interactive lessons with demos</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/privacy-settings</code></td><td>—</td><td>View/update privacy settings (Pro/Max only)</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/extra-usage</code></td><td>—</td><td>Configure extra usage for rate limit recovery</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/stickers</code></td><td>—</td><td>Order Claude Code stickers 🎉</td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td><code>/radio</code></td><td>—</td><td>Open Claude FM lo-fi radio in browser 🎵</td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: KEYBOARD SHORTCUTS ==================== -->
+    <section id="keyboard">
+      <h2>Keyboard Shortcuts</h2>
+      <p class="section-desc">Quick keys available during an interactive session.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Action</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td>Cancel current operation</td><td><kbd>Ctrl+C</kbd></td><td><kbd>Ctrl+C</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Exit / shutdown</td><td><kbd>Ctrl+D</kbd> or <kbd>Ctrl+C ×2</kbd></td><td><kbd>Ctrl+D</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Clear screen</td><td><kbd>Ctrl+L</kbd></td><td><kbd>Ctrl+L</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Edit prompt in $EDITOR</td><td><kbd>Ctrl+G</kbd></td><td><kbd>Ctrl+G</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Switch modes (plan/normal/auto)</td><td><kbd>Shift+Tab</kbd></td><td><kbd>Shift+Tab</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Toggle reasoning display</td><td><kbd>Ctrl+T</kbd></td><td><kbd>Alt+T</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Go to line start</td><td><kbd>Ctrl+A</kbd></td><td><kbd>Ctrl+A</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Go to line end</td><td><kbd>Ctrl+E</kbd></td><td><kbd>Ctrl+E</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Delete previous word</td><td><kbd>Ctrl+W</kbd></td><td><kbd>Ctrl+W</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Delete to line start</td><td><kbd>Ctrl+U</kbd></td><td><kbd>Ctrl+U</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Delete to line end</td><td><kbd>Ctrl+K</kbd></td><td><kbd>Ctrl+K</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Cancel / Escape</td><td><kbd>Esc</kbd></td><td><kbd>Esc</kbd></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td>Run command, preserve input</td><td><kbd>Ctrl+S</kbd></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td>Expand all timeline</td><td><kbd>Ctrl+O/E</kbd></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td>Move task to background</td><td><kbd>Ctrl+X → B</kbd></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="copilot"><td>Open most recent link</td><td><kbd>Ctrl+X → O</kbd></td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+            <tr data-cat="claude"><td>Switch model</td><td>—</td><td><kbd>Alt+P</kbd></td><td><span class="badge claude">Claude</span></td></tr>
+            <tr data-cat="claude"><td>Reverse search history</td><td>—</td><td><kbd>Ctrl+R</kbd></td><td><span class="badge claude">Claude</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: CUSTOM INSTRUCTIONS ==================== -->
+    <section id="instructions">
+      <h2>Custom Instructions</h2>
+      <p class="section-desc">Both tools read Markdown instruction files to customize behavior per-project.</p>
+      <div class="card-grid">
+        <div class="card copilot-card">
+          <h4>Copilot CLI</h4>
+          <ul>
+            <li><code>CLAUDE.md</code> (in git root &amp; cwd)</li>
+            <li><code>GEMINI.md</code> (in git root &amp; cwd)</li>
+            <li><code>AGENTS.md</code> (in git root &amp; cwd)</li>
+            <li><code>.github/instructions/**/*.instructions.md</code></li>
+            <li><code>.github/copilot-instructions.md</code></li>
+            <li><code>$HOME/.copilot/copilot-instructions.md</code></li>
+          </ul>
+        </div>
+        <div class="card claude-card">
+          <h4>Claude Code</h4>
+          <ul>
+            <li><code>CLAUDE.md</code> (in git root &amp; cwd)</li>
+            <li><code>.claude/settings.json</code></li>
+            <li><code>~/.claude.json</code> (user-level config)</li>
+            <li>Auto-memory entries via <code>/memory</code></li>
+            <li>Personal memory: <code>~/.claude/CLAUDE.md</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: AGENTS ==================== -->
+    <section id="agents">
+      <h2>Built-in Agents</h2>
+      <p class="section-desc">Both tools ship with specialized sub-agents for common tasks.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Agent</th><th>Copilot CLI</th><th>Claude Code</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr data-cat="common"><td>Explore / Codebase analysis</td><td>✅ Explore agent</td><td>✅ Sub-agents via <code>/agents</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Task runner (build, test)</td><td>✅ Task agent</td><td>✅ Background tasks</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>General purpose</td><td>✅ General purpose agent</td><td>✅ General-purpose sub-agent</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Code review</td><td>✅ Code review agent</td><td>✅ <code>/review</code>, <code>/ultrareview</code></td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="common"><td>Research</td><td>✅ Research agent</td><td>✅ Research sub-agent</td><td><span class="badge common">Common</span></td></tr>
+            <tr data-cat="copilot"><td>Rubber duck (critic)</td><td>✅ Rubber duck agent (auto-invoked)</td><td>—</td><td><span class="badge copilot">Copilot</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== SECTION: SUMMARY ==================== -->
+    <section id="summary">
+      <h2>TL;DR — Key Differences</h2>
+      <div class="card-grid two-col">
+        <div class="card copilot-card">
+          <h4>Copilot CLI strengths</h4>
+          <ul>
+            <li>Deep GitHub integration — <code>#</code> mentions for issues/PRs</li>
+            <li><code>/delegate</code> to hand off to cloud agent for PR creation</li>
+            <li><code>/fleet</code> mode for parallel sub-agents</li>
+            <li>Built-in LSP server support via <code>/lsp</code></li>
+            <li><code>/research</code> for deep web + GitHub search</li>
+            <li>Autopilot mode (<code>/autopilot</code>)</li>
+            <li><code>/share</code> to gist, HTML, or markdown</li>
+            <li>Reads <code>CLAUDE.md</code>, <code>GEMINI.md</code>, and <code>AGENTS.md</code></li>
+          </ul>
+        </div>
+        <div class="card claude-card">
+          <h4>Claude Code strengths</h4>
+          <ul>
+            <li>Print mode (<code>-p</code>) for scripting &amp; CI pipelines</li>
+            <li><code>/batch</code> for large-scale parallel refactors via worktrees</li>
+            <li><code>/ultrareview</code> &amp; <code>/ultraplan</code> — cloud-powered deep analysis</li>
+            <li><code>/goal</code> — autonomous until condition is met</li>
+            <li>Effort tuning (<code>low</code> → <code>max</code>)</li>
+            <li>Budget caps (<code>--max-budget-usd</code>)</li>
+            <li>Voice dictation, Chrome integration, desktop app</li>
+            <li>Background agents with <code>claude --bg</code></li>
+            <li><code>/autofix-pr</code> — auto-push fixes on CI failure</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Built for developers migrating between tools. Data sourced from official docs as of May 2026.</p>
+      <p class="links">
+        <a href="https://docs.github.com/copilot/concepts/agents/about-copilot-cli" target="_blank">Copilot CLI Docs ↗</a>
+        <a href="https://code.claude.com/docs/en/cli-reference" target="_blank">Claude Code Docs ↗</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
