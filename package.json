@@ -1,0 +1,11 @@
+{
+  "name": "copilot-vs-claude",
+  "version": "1.0.0",
+  "description": "Static site comparing GitHub Copilot CLI and Claude Code commands, modes, and features",
+  "scripts": {
+    "build": "node build-release.js"
+  },
+  "keywords": ["copilot", "claude-code", "cli", "comparison", "developer-tools"],
+  "author": "Arpit Verma <arpitmanit.01@gmail.com>",
+  "license": "MIT"
+}
