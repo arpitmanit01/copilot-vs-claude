@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playground — Copilot CLI vs Claude Code</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="playground.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="index.html" class="back-link">← Back to Command Reference</a>
+      <h1 id="pg-title">Loading…</h1>
+      <p class="subtitle" id="pg-category"></p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="playground-content">
+      <!-- Populated by JS -->
+    </div>
+
+    <div id="not-found" class="hidden">
+      <div class="empty-state">
+        <h2>Command not found</h2>
+        <p>The playground for this command doesn't exist yet.</p>
+        <a href="index.html" class="btn-primary">← Back to Reference</a>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="pg-nav" class="pg-nav hidden">
+      <a id="pg-prev" href="#" class="pg-nav-btn">← Previous</a>
+      <a href="index.html" class="pg-nav-btn home">All Commands</a>
+      <a id="pg-next" href="#" class="pg-nav-btn">Next →</a>
+    </nav>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Built for developers migrating between tools. Data sourced from official docs as of May 2026.</p>
+      <p class="links">
+        <a href="https://docs.github.com/copilot/concepts/agents/about-copilot-cli" target="_blank">Copilot CLI Docs ↗</a>
+        <a href="https://code.claude.com/docs/en/cli-reference" target="_blank">Claude Code Docs ↗</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="playground-data.js"></script>
+  <script>
+    const TOAST_DURATION = 1800;
+
+    function copyToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, TOAST_DURATION);
+      }).catch(() => {
+        // Fallback for file:// protocol
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, TOAST_DURATION);
+      });
+    }
+
+    function loadPlayground() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('cmd');
+      if (!id) { showNotFound(); return; }
+
+      const data = window.PLAYGROUND_DATA;
+
+      const item = data.find(d => d.id === id);
+      if (!item) { showNotFound(); return; }
+
+      document.title = `${item.title} — Playground`;
+      document.getElementById('pg-title').textContent = item.title;
+      document.getElementById('pg-category').innerHTML =
+        `<span class="badge ${item.tool === 'both' ? 'common' : item.tool}">${item.tool === 'both' ? 'Common' : item.tool === 'copilot' ? 'Copilot Only' : 'Claude Only'}</span> &nbsp;${item.category}`;
+
+      const content = document.getElementById('playground-content');
+      content.innerHTML = renderPlayground(item);
+
+      // Navigation
+      const idx = data.indexOf(item);
+      const nav = document.getElementById('pg-nav');
+      nav.classList.remove('hidden');
+      const prevBtn = document.getElementById('pg-prev');
+      const nextBtn = document.getElementById('pg-next');
+      if (idx > 0) {
+        prevBtn.href = `playground.html?cmd=${data[idx - 1].id}`;
+        prevBtn.textContent = `← ${data[idx - 1].title}`;
+      } else { prevBtn.classList.add('disabled'); }
+      if (idx < data.length - 1) {
+        nextBtn.href = `playground.html?cmd=${data[idx + 1].id}`;
+        nextBtn.textContent = `${data[idx + 1].title} →`;
+      } else { nextBtn.classList.add('disabled'); }
+
+      // Attach copy handlers
+      content.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.closest('.cmd-block').querySelector('code').textContent;
+          copyToClipboard(code, btn);
+        });
+      });
+
+      content.querySelectorAll('.copy-setup-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.closest('.setup-block').querySelector('code').textContent;
+          copyToClipboard(code, btn);
+        });
+      });
+    }
+
+    function renderPlayground(item) {
+      let html = '';
+
+      // Description
+      html += `<section class="pg-section">
+        <h2>What is this?</h2>
+        <p>${item.description}</p>
+      </section>`;
+
+      // What to expect
+      html += `<section class="pg-section">
+        <h2>What to Expect</h2>
+        <div class="expect-box"><p>${item.what_to_expect}</p></div>
+      </section>`;
+
+      // Setup
+      html += `<section class="pg-section">
+        <h2>🛠️ Quick Setup</h2>
+        ${item.setup_goal ? `<div class="setup-goal"><p><strong>Goal:</strong> ${item.setup_goal}</p></div>` : ''}
+        <p class="hint">Copy-paste this block to create a demo environment and try it out:</p>
+        <div class="setup-block">
+          <div class="setup-header">
+            <span>Terminal</span>
+            <button class="copy-setup-btn">Copy All</button>
+          </div>
+          <pre><code>${escapeHtml(item.setup)}</code></pre>
+        </div>
+      </section>`;
+
+      // Commands — Copilot
+      if (item.commands_copilot && item.commands_copilot.length > 0) {
+        html += `<section class="pg-section">
+          <h2><span class="tool-label copilot-label">Copilot CLI</span> Commands</h2>
+          <div class="cmd-list">${item.commands_copilot.map(c => renderCmd(c)).join('')}</div>
+        </section>`;
+      }
+
+      // Commands — Claude
+      if (item.commands_claude && item.commands_claude.length > 0) {
+        html += `<section class="pg-section">
+          <h2><span class="tool-label claude-label">Claude Code</span> Commands</h2>
+          <div class="cmd-list">${item.commands_claude.map(c => renderCmd(c)).join('')}</div>
+        </section>`;
+      }
+
+      // Try this
+      if (item.try_this && item.try_this.length > 0) {
+        html += `<section class="pg-section">
+          <h2>🧪 Try This</h2>
+          <ol class="try-list">${item.try_this.map(t => `<li>${t}</li>`).join('')}</ol>
+        </section>`;
+      }
+
+      // Tips
+      if (item.tips) {
+        html += `<section class="pg-section">
+          <h2>💡 Pro Tips</h2>
+          <div class="tips-box"><p>${item.tips}</p></div>
+        </section>`;
+      }
+
+      return html;
+    }
+
+    function renderCmd(c) {
+      return `<div class="cmd-block">
+        <div class="cmd-row">
+          <code>${escapeHtml(c.cmd)}</code>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <p class="cmd-desc">${c.desc}</p>
+      </div>`;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function showNotFound() {
+      document.getElementById('playground-content').classList.add('hidden');
+      document.getElementById('not-found').classList.remove('hidden');
+      document.getElementById('pg-title').textContent = 'Playground';
+    }
+
+    loadPlayground();
+  </script>
+</body>
+</html>
