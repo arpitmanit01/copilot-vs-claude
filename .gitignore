@@ -1,0 +1,9 @@
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node (if any local dev tools added later)
+node_modules/
+package-lock.json
